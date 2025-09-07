@@ -1,0 +1,382 @@
+Chart Breaker — Product Outline & Build Plan
+Vision & Principles
+Goal: A home‑health EHR + RCM platform that matches Alora’s core workflows, then surpasses it with safe, compliant AI.
+
+
+Guardrails: HIPAA-first, audit‑ready, human‑in‑the‑loop on all AI suggestions, payer‑specific rules engines, and clear role‑based access control (RBAC).
+
+
+North‑star outcomes: Faster, cleaner OASIS and visit notes, higher first‑pass claim rates, fewer denials, stronger documentation‑to‑billing alignment, and a trusted per‑patient chat experience.
+
+
+
+Phase 1 — "Alora Parity" Foundation (MVP EHR)
+Objective: Ship core, non‑AI EHR features so clinical operations can run end‑to‑end.
+Patient & Episode Management
+
+
+Referrals & intake (source, payer, auths).
+
+
+Demographics, contacts, consents, primary language, caregiver support.
+
+
+Episodes/periods of care, disciplines, frequency & duration, goals.
+
+
+Assessments & Documentation
+
+
+OASIS‑E SOC/ROC/Recert/Transfer/DC (structured forms, validations, lock & sign).
+
+
+Discipline‑specific visit notes (SN, PT, OT, ST, MSW, HHA).
+
+
+Care Plan (goals, interventions, problems), order management & MD signatures.
+
+
+Document management: eFax, upload, OCR; standardized templates library.
+
+
+Scheduling & Field Operations
+
+
+Staff availability, recurring visits, route optimization (nice‑to‑have).
+
+
+EVV (Electronic Visit Verification) hooks (GPS, clock‑in/out) for Medicaid.
+
+
+Mobile clinician app (offline capture for notes, photos, vitals; later syncing).
+
+
+Staff, Compliance & QA
+
+
+Staff profiles, credentials, expirations, competencies; checklist tracking.
+
+
+QA queue (pre‑billing documentation audits, deficiency tracking, lock rules).
+
+
+Audit trail (who changed what, when) across charting and billing.
+
+
+Billing & RCM (Baseline)
+
+
+Payer table & fee schedules.
+
+
+Medicare Home Health: NOA, PDGM/HIPPS grouping, LUPA checks, late‑submission flags.
+
+
+Claims: 837I/837P generation; submit via clearinghouse; 835 ERA ingestion; basic 277/999 status.
+
+
+Patient responsibility, statements, and payment posting.
+
+
+Reporting
+
+
+OASIS exports, productivity, visit utilization, missed‑visit trends, revenue by payer.
+
+
+Compliance dashboards (lock timeliness, order lag, credential expiries).
+
+
+Definition of Done (Phase 1):
+Can run SOC→visits→QA→bill→collect loop for Medicare & at least one Medicaid payer.
+
+
+OASIS validation passes; EVV events stored; claims accepted by clearinghouse; 835 posting works.
+
+
+
+Phase 2 — AI‑Assisted Charting ("Clinician Copilot")
+Objective: Accelerate and improve clinical documentation while maintaining strict human control.
+Data ingestion & context building
+
+
+Pull prior episodes, hospital discharge docs, med list, problem list, labs (when available).
+
+
+Normalize to internal schema; PHI-safe vector index for retrieval.
+
+
+In‑workflow AI prompts
+
+
+SOC assistant that asks missing/clarifying questions aligned to OASIS‑E logic.
+
+
+Autocomplete suggestions for HPI, ROS, objective findings, education given, and care plan goals (SMART) & interventions mapped by diagnosis/risks.
+
+
+Real‑time consistency checks: vitals vs. narrative; meds vs. diagnosis; risk flags (falls, wounds, insulin).
+
+
+Care Plan Intelligence
+
+
+Template library per condition (e.g., CHF, COPD, DM) + tailored intervention suggestions.
+
+
+Auto‑link education topics, frequency/duration, and measurable outcomes.
+
+
+Safety & Controls
+
+
+Clear labeling: “AI suggestion — review & accept.”
+
+
+Required‑field coverage meter; explain‑why visibility with source citations to prior chart.
+
+
+Role and scope limits; strict PHI scoping; full audit of AI prompts & accept/reject events.
+
+
+Definition of Done (Phase 2):
+Median SOC documentation time reduced with equal or better QA pass rate; measurable drop in QA revisions.
+
+
+
+Phase 3 — Billing Oversight + AI ("Billing Sentinel")
+Objective: Reduce denials and speed cash by tying documentation quality directly to billing readiness.
+Rules Engine & Scrubbing
+
+
+Payer‑specific edit rules (coverage, auth, modifiers, frequency caps, EVV rules, diagnosis requirements).
+
+
+PDGM pre‑flight (HIPPS, LUPA risk), NOA timing watchdog, missing signatures/orders blockers.
+
+
+Denial Feedback Loop
+
+
+835 denial reason code ingestion → root‑cause analysis → map to charting recommendations (e.g., add wound measurements, clarify homebound criteria, education documentation).
+
+
+Auto‑generate correction tasks and message clinic leads.
+
+
+What‑if Rehearsal
+
+
+Simulate claim under each payer rule set; surface risks pre‑submission.
+
+
+KPIs & Alerts
+
+
+First‑pass clean claim rate, DAR, denial rate, dollars at risk.
+
+
+Exception feed to QA & clinicians with precise, actionable fixes.
+
+
+Definition of Done (Phase 3):
+Sustained improvement in first‑pass rate; material reduction in avoidable denials linked to documentation gaps.
+
+
+
+Phase 4 — Per‑Patient Chatbot ("Chart Chat")
+Objective: Natural‑language access to a single patient’s longitudinal record.
+Capabilities
+
+
+Ask questions ("Show last 3 A1c values," "Summarize wound progress," "Any med nonadherence signals?").
+
+
+Generate structured reports: SOC summary, 30‑day recert note, IDG notes, discharge summary, family update (with consent).
+
+
+Privacy & Consent
+
+
+Strict PHI scoping to the selected patient/episode; role‑based redaction; consent workflow for caregiver/family sharing.
+
+
+Persistent logs of Q&A and report generation in the audit trail.
+
+
+Safety
+
+
+No autonomous orders; always requires human verification for any chart‑changing action.
+
+
+Definition of Done (Phase 4):
+Clinicians reliably use Chart Chat to draft summaries that pass QA with minimal edits.
+
+
+
+Phase 5 — Volunteer Platform
+Objective: Engage volunteers post‑discharge (non‑clinical), stay compliant, and measure impact.
+Volunteer Onboarding & Compliance
+
+
+Applications, background checks, references, HIPAA/PHI training modules, code of conduct.
+
+
+Role definitions (transportation, social check‑ins, forms assistance like LEAP/Medicaid), boundaries & escalation paths.
+
+
+Scheduling & Interaction Logging
+
+
+Assignment by geography/need; messaging; calendar invites.
+
+
+Log interactions (time, task, notes). Optional geotag for visit verification.
+
+
+Patient & Data Safety
+
+
+Strict segregation from clinical chart; volunteers see only minimally necessary info.
+
+
+Consent capture; auto‑redaction; templated scripts.
+
+
+Impact & Reporting
+
+
+Loneliness index, resource connection metrics, readmission reduction correlations.
+
+
+Definition of Done (Phase 5):
+Volunteer activity tracked, compliant, and demonstrably helpful per outcomes dashboard.
+
+
+
+Cross‑Cutting Architecture & Platform
+Security & Compliance
+
+
+HIPAA safeguards: encryption at rest/in transit, MFA, RBAC, least‑privilege, detailed audit logs, data retention policies.
+
+
+BAAs with vendors/clearinghouse; incident response runbook; disaster recovery (RPO/RTO targets).
+
+
+Interoperability
+
+
+Clearinghouse integration for X12 (270/271 eligibility, 276/277 claim status, 837I/P, 835 ERA).
+
+
+HIE/FHIR for summaries; eFax for providers lacking electronic exchange.
+
+
+Optional e‑prescribe (for NP practice) via certified network.
+
+
+Data Model (high level)
+
+
+Entities: Patient, Episode, Visit, Assessment(OASIS), CarePlan, Order, Staff, Credential, Schedule, EVVEvent, Payer, Authorization, Claim, Remittance(ERA), Denial, Task, Document, Message, Volunteer, Consent.
+
+
+Tech Stack (suggested)
+
+
+Core EHR/RCM APIs: .NET or NestJS + PostgreSQL/SQL Server; Queue (Service Bus); Blob storage for documents.
+
+
+AI Services: Python/FastAPI for RAG & prompt orchestration; vector DB; feature store for signals.
+
+
+Web App: React/Next.js; role‑based UI; accessibility; offline‑friendly clinician app (React Native) with secure local storage.
+
+
+Cloud (Azure‑friendly): App Service/Kubernetes, Key Vault, Private Link, App Insights, Defender for Cloud.
+
+
+AI Governance
+
+
+Prompt templates versioned; PHI minimization; red‑team tests (prompt injection, data exfiltration).
+
+
+Human‑in‑the‑loop acceptance; explainability notes; model performance monitoring with real QA outcomes.
+
+
+
+Build Sequencing & Milestones
+M0: Foundations — Data model, user/role system, document templates, audit trail.
+
+
+M1: Clinical Core — OASIS‑E, visit notes, orders/signatures, scheduling, basic reporting.
+
+
+M2: EVV + Baseline Billing — Payer setup, NOA, PDGM/HIPPS, 837 generation, 835 posting.
+
+
+M3: QA Workbench — Deficiency tracking, lock rules, clinician tasking.
+
+
+M4: AI Charting Copilot — RAG index, SOC assistant, consistency checks, care plan generator.
+
+
+M5: Billing Sentinel AI — Rules engine, denial loop, what‑if rehearsal, KPI dashboards.
+
+
+M6: Chart Chat — Per‑patient chatbot + report generation.
+
+
+M7: Volunteer Platform — Onboarding, scheduling, logging, reporting.
+
+
+Release criteria per milestone include: user acceptance tests (UAT) with real scenarios, security review, and compliance sign‑off.
+
+Artifacts to Prepare Now (Accelerators)
+Redline the current SOC/ROC/OASIS templates + visit note templates by discipline.
+
+
+List of payers & rule nuances (Medicare, CO Medicaid, TriWest, etc.); sample 837/835 files.
+
+
+Current QA checklists; examples of denials + reasons.
+
+
+Education content library mapped by diagnosis (for AI suggestions).
+
+
+Volunteer roles, policies, and training modules.
+
+
+
+Risk Register (Selected)
+AI hallucination risk → strict PHI‑scoped RAG + human review; no auto‑chart changes.
+
+
+Payer change velocity → rules engine with versioning; test suites per payer.
+
+
+EVV/state variance → pluggable EVV adapters per state program.
+
+
+Mobile offline edge cases → robust conflict resolution & sync tests.
+
+
+
+Nice‑to‑Have Enhancements (Later)
+Route optimization for multi‑visit days.
+
+
+HHCAHPS survey integration & satisfaction dashboards. (AI telephone Calls integration to ask satisfaction survey) 
+
+
+Multilingual patient materials; text‑to‑speech for education.
+
+
+Family portal for limited updates & consents.
+Training Platform
+
+

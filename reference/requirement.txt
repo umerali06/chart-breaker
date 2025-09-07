@@ -1,0 +1,223 @@
+Chart Breaker EHR/RCM Platform – Product Requirements Document
+1. Introduction
+Purpose. Chart Breaker is a modern home‑health electronic health record (EHR) and revenue cycle management (RCM) system designed to handle core clinical workflows and financial operations for home‑health agencies. The platform’s initial goal is to achieve feature parity with Alora Plus while adding auditable AI assistance for clinicians and billers. Future phases will introduce AI‑driven documentation helpers, billing oversight, per‑patient chatbots, and a volunteer management portal. All features must be HIPAA compliant, maintain strict role‑based access control (RBAC), and support robust audit trails[1].
+Target users.
+ Clinicians – nurses, therapists, social workers and aides creating visit notes and care plans.
+ Administrative staff – schedulers, quality assurance (QA) reviewers and patient intake team.
+ Billers – staff responsible for payer management, claim generation, posting of remittances and handling denials.
+ Volunteers – non‑clinical personnel providing post‑discharge support in later phases.
+ Patients/Caregivers* – limited access (e.g., via Chart Chat or volunteer interactions) for summaries and consents.
+2. Vision & Guiding Principles
+The system should match Alora’s core workflows but “surpass it with safe, compliant AI”[1]. Design decisions should be driven by:
+Principle	Description
+HIPAA‑first and audit‑ready	All data at rest and in transit must be encrypted. Implement RBAC and fine‑grained access logs. Store immutable audit trails for every document change and AI suggestion[2].
+Human‑in‑the‑loop AI	AI must never autonomously change the chart; suggestions must be clearly labeled and require user acceptance[3]. Provide visibility into the data used for AI responses and maintain a record of accept/reject actions.
+Role‑based workflows	Define distinct roles (intake staff, clinicians, QA reviewers, billers, volunteers) and enforce access via RBAC.
+Payer‑specific rules	Billing logic and documentation requirements vary by payer. Implement a rules engine that can be versioned and configured per payer[4].
+North‑star outcomes	Speed up OASIS and visit note completion, increase first‑pass claim rates, reduce denials, strengthen alignment between documentation and billing, and provide trusted chat experiences for per‑patient queries[5].
+3. Product Scope & Phases
+The project will be built in iterative phases. Each phase adds additional modules while maintaining the principles above.
+Phase 1 – “Alora Parity” Foundation (MVP EHR)
+Focuses on shipping core, non‑AI features so clinical operations can run end‑to‑end[6]. Key modules:
+1.	Patient & Episode Management[7]
+2.	Referrals & intake – collect source of referral, payer information and authorizations.
+3.	Demographics & contacts – capture patient demographics, consents, emergency contacts, primary language and caregiver support[8].
+4.	Episodes & disciplines – define episodes/periods of care; record disciplines involved, frequency and duration of visits, and care goals.
+5.	Assessments & Documentation[9]
+6.	OASIS‑E forms – implement Start‑of‑Care (SOC), Resumption‑of‑Care (ROC), Recertification, Transfer and Discharge forms with required validations and lock/sign capabilities[10].
+7.	Discipline‑specific visit notes – create structured notes for skilled nursing (SN), physical therapy (PT), occupational therapy (OT), speech therapy (ST), medical social worker (MSW) and home‑health aide (HHA) visits[11].
+8.	Care plans and orders – manage goals, problems and interventions; record physician orders and capture electronic signatures.
+9.	Document management – support upload, OCR, eFax integration and a standardized templates library[12].
+10.	Scheduling & Field Operations[13]
+11.	Staff availability & recurrence – allow schedulers to view staff calendars, define recurring visits and adjust for time‑off or conflicts.
+12.	EVV hooks – integrate GPS and clock‑in/out for Electronic Visit Verification (Medicaid programs)[14].
+13.	Mobile clinician app – provide offline capture of notes, photographs and vital signs; sync when network connectivity is restored[15].
+14.	Staff, Compliance & QA[16]
+15.	Staff profiles – record credentials, expiration dates, competencies and track completion of required trainings[17].
+16.	QA queue – implement a QA dashboard to review documentation before billing; include deficiency tracking and lock rules to prevent changes after final sign‑off[18].
+17.	Audit trail – store who changed what and when across charting and billing[19].
+18.	Billing & RCM (Baseline)[20]
+19.	Payer & fee schedules – maintain a table of payers, contracted rates and fee schedules[21].
+20.	Medicare home‑health processing – handle Notice of Admission (NOA), Patient‑Driven Groupings Model (PDGM) / HIPPS grouping and Low‑Utilization Payment Adjustment (LUPA) checks; flag late submissions[22].
+21.	Claim generation & submission – generate 837I/837P files, submit via clearinghouse and ingest 835 ERA remittances; support basic 277/999 status reporting[23].
+22.	Patient responsibility – manage statements and payment postings.
+23.	Reporting[24]
+24.	Provide OASIS exports, productivity reports, visit‑utilization and missed‑visit trends, revenue by payer and compliance dashboards (e.g., lock timeliness, order lag, credential expiry)[24].
+Definition of Done (Phase 1). The system must allow completion of SOC→visits→QA→bill→collect loop for Medicare and at least one Medicaid payer, with OASIS validation and EVV events stored, and clearinghouse submissions accepted[25].
+Phase 2 – AI‑Assisted Charting (“Clinician Copilot”)
+Goal: accelerate and improve documentation while maintaining strict human control[26].
+1.	Data ingestion & context building
+2.	Ingest previous episodes, hospital discharge documents, medication and problem lists, and labs[27].
+3.	Normalize data to an internal schema and store in a PHI‑safe vector index for retrieval[28].
+4.	In‑workflow AI prompts
+5.	Provide a SOC assistant that asks missing or clarifying questions aligned to OASIS‑E logic[29].
+6.	Offer autocomplete suggestions for history of present illness (HPI), review of systems (ROS), objective findings, education given and care plan goals and interventions[30].
+7.	Run real‑time consistency checks between vitals and narrative, medications and diagnoses, and flag risk indicators (falls, wounds, insulin)[31].
+8.	Care‑Plan Intelligence
+9.	Provide a template library per condition (e.g., congestive heart failure, COPD, diabetes) plus tailored intervention suggestions[32].
+10.	Auto‑link education topics, visit frequency and measurable outcomes[33].
+11.	Safety & controls
+12.	Clearly label AI suggestions with “review & accept”; implement a required‑field coverage meter; provide explain‑why visibility with source citations[34].
+13.	Enforce role and scope limits with strict PHI scoping and audit every prompt and accept/reject event[35].
+Definition of Done (Phase 2). Median SOC documentation time should decrease without lowering QA pass rates, with measurable reductions in QA revisions[36].
+Phase 3 – Billing Oversight + AI (“Billing Sentinel”)
+Goal: reduce denials and accelerate cash flow by tying documentation quality to billing readiness[37].
+1.	Rules engine & scrubbing
+2.	Implement payer‑specific edit rules covering coverage requirements, authorizations, modifiers, frequency caps, EVV rules and diagnosis requirements[38].
+3.	Provide PDGM pre‑flight checks (HIPPS & LUPA risk), NOA timing watchdog and blockers for missing signatures/orders[39].
+4.	Denial feedback loop
+5.	Ingest 835 denial reason codes; perform root‑cause analysis and map them to charting recommendations (e.g., add wound measurements, clarify homebound criteria, document education)[40].
+6.	Automatically create correction tasks and notify clinic leads[41].
+7.	What‑if rehearsal
+8.	Simulate claims under each payer’s rules to surface risks before submission[42].
+9.	KPIs & alerts
+10.	Track first‑pass clean claim rate, days‑in‑accounts‑receivable (DAR), denial rate and dollars at risk[43].
+11.	Send exceptions to QA and clinicians with clear, actionable fixes[44].
+Definition of Done (Phase 3). Demonstrated improvement in first‑pass clean rate and a material reduction in avoidable denials[45].
+Phase 4 – Per‑Patient Chatbot (“Chart Chat”)
+Objective: offer natural‑language access to a single patient’s longitudinal record[46].
+1.	Capabilities
+2.	Answer questions like “Show last 3 A1c values,” “Summarize wound progress,” or “Any medication non‑adherence signals?”[47].
+3.	Generate structured reports such as SOC summaries, 30‑day recertification notes, interdisciplinary group (IDG) notes, discharge summaries and family updates[48].
+4.	Privacy & consent
+5.	Restrict PHI access to the selected patient/episode; enforce role‑based redaction and consent workflows for caregivers/family sharing[49].
+6.	Maintain persistent logs of Q&A and report generation in the audit trail[50].
+7.	Safety
+8.	Disallow autonomous orders; always require human verification for any chart‑changing action[51].
+Definition of Done (Phase 4). Clinicians consistently use Chart Chat to draft summaries that pass QA with minimal edits[52].
+Phase 5 – Volunteer Platform
+Goal: engage volunteers post‑discharge, maintain compliance and measure impact[53].
+1.	Volunteer onboarding & compliance
+2.	Provide application forms, background checks, references, HIPAA/PHI training modules and code of conduct[54].
+3.	Define volunteer roles (transportation, social check‑ins, forms assistance such as LEAP/Medicaid), boundaries and escalation paths[55].
+4.	Scheduling & interaction logging
+5.	Assign volunteers based on geography and patient need; send messages and calendar invites[56].
+6.	Log interactions (time, task, notes) with optional geotagging for visit verification[57].
+7.	Patient & data safety
+8.	Keep volunteer access segregated from the clinical chart; volunteers should only see minimally necessary information[58].
+9.	Capture consent, auto‑redact sensitive details and provide templated scripts[59].
+10.	Impact & reporting
+11.	Track loneliness index, resource connections and correlations with readmission reduction[60].
+Definition of Done (Phase 5). Volunteer activity is tracked, compliant and demonstrably helpful according to an outcomes dashboard[61].
+4. Cross‑Cutting Architecture & Non‑Functional Requirements
+4.1 Security & Compliance
+•	Encrypt all data at rest and in transit; implement MFA and RBAC with least‑privilege access[62].
+•	Maintain detailed audit logs; support data retention and disaster‑recovery policies (define RPO/RTO targets)[63].
+•	Sign Business Associate Agreements (BAAs) with vendors and clearinghouse providers[64].
+4.2 Interoperability
+•	Integrate with clearinghouse services for X12 transactions (270/271 eligibility, 276/277 claim status, 837I/P claims and 835 remittances)[65].
+•	Implement FHIR or HIE interfaces for exchanging summaries; support eFax for providers without electronic exchange[66].
+•	Optional e‑prescribing via a certified network[67].
+4.3 Data Model (High Level)
+Define entities and relationships:
+Entity	Description
+Patient	Core patient record, including demographics, consents and contact information[68].
+Episode	Period of care with start/end dates, disciplines and goals[68].
+Visit & Assessment	Individual visit notes (SN/PT/OT/etc.) and structured assessments such as OASIS[68].
+Care Plan & Order	Goals, problems, interventions and physician orders[68].
+Staff & Credential	Clinical and administrative staff profiles, credentials and expirations[68].
+Schedule & EVVEvent	Scheduling records and electronic visit verification events[68].
+Payer & Authorization	Payer details, coverage rules and authorizations[68].
+Claim & Remittance (ERA)	Billing claims and remittance advices[68].
+Denial & Task	Denial records and resulting tasks/corrections[68].
+Document & Message	Uploaded documents, eFax and internal messages[68].
+Volunteer & Consent	Volunteer profiles and consents for post‑discharge interactions[68].
+4.4 Tech Stack (Suggested)
+•	Backend APIs – Use .NET or NestJS (NodeJS) with PostgreSQL or SQL Server; implement asynchronous messaging via Service Bus and use blob storage for documents[69].
+•	AI services – Deploy Python/FastAPI microservices for retrieval‑augmented generation (RAG) and prompt orchestration; maintain a vector database and feature store for signals[70].
+•	Web app – Build with React or Next.js; support RBAC and responsive design; create a React Native clinician mobile app with offline support and secure local storage[71].
+•	Cloud deployment – Target Azure App Service or Kubernetes; use Key Vault for secrets, Private Link for secure networking, Application Insights for monitoring and Defender for Cloud for threat protection[72].
+4.5 AI Governance
+•	Version prompt templates and minimize PHI included in prompts[73].
+•	Conduct red‑team testing for prompt injection and data‑exfiltration attacks[73].
+•	Maintain human‑in‑the‑loop acceptance; store explainability notes and monitor model performance using real QA outcomes[74].
+5. Build Sequencing & Milestones
+Adopt a milestone‑driven development plan. Each milestone must pass user acceptance testing (UAT), security review and compliance sign‑off[75].
+Milestone	Description	Key Deliverables
+M0 – Foundations	Define the data model, implement user/role system, set up document templates and create an audit trail service[76].
+Database schemas, authentication & RBAC service, initial document template engine, audit logging infrastructure.
+M1 – Clinical Core	Implement OASIS‑E assessments, discipline‑specific visit notes, orders/signatures workflow, scheduling and baseline reporting[77].
+SOC/ROC forms, visit note UI, care‑plan builder, scheduling UI, basic reports.
+M2 – EVV + Baseline Billing	Add payer management, NOA and PDGM/HIPPS grouping, generate 837 claims and ingest 835 remittances[78].
+Payer setup UI, billing engine, clearinghouse integration, EVV event capture.
+M3 – QA Workbench	Build QA deficiency tracking, lock rules and clinician tasking[79].
+QA dashboard, deficiency queue, lock/unlock features, task assignment.
+M4 – AI Charting Copilot	Deploy RAG index, implement SOC assistant, consistency checks and care‑plan generator[80].
+Data ingestion pipeline, vector index, in‑workflow prompts, AI UI components.
+M5 – Billing Sentinel AI	Implement rules engine, denial feedback loop, what‑if rehearsal and KPI dashboards[81].
+Configurable rules engine, simulation tools, denial analysis module, KPI dashboards.
+M6 – Chart Chat	Launch per‑patient chatbot with report generation[82].
+Chat UI, patient‑specific retrieval layer, structured report generation.
+M7 – Volunteer Platform	Build volunteer onboarding, scheduling, logging and reporting[83].
+Volunteer portal, compliance tracking, interaction logs, impact dashboard.
+6. Implementation Approach & Step‑by‑Step Guidance
+1.	Set up the development environment
+2.	Install required tools: NodeJS (for NestJS or Next.js), .NET SDK (if choosing .NET), Python 3.x, PostgreSQL/SQL Server, Redis or similar cache, and Docker.
+3.	Initialize a Git repository. Use feature branches with pull‑request review. Configure CI/CD pipelines (GitHub Actions or Azure DevOps) to run unit tests and lint checks.
+4.	Milestone M0 – Foundations
+5.	Define data model – Create entity diagrams for Patient, Episode, Visit, Assessment, CarePlan, Staff, Payer, Claim, etc. Implement migrations.
+6.	Authentication & RBAC – Set up user authentication (JWT or OAuth) and roles (intake, clinician, QA, biller, volunteer). Enforce RBAC at the API layer.
+7.	Document templates and audit trail – Build a service to store template definitions and generate documents (e.g., SOC forms). Implement a generic audit log to record user actions with timestamps and references.
+8.	DevOps – Deploy staging environments and set up Azure Key Vault and Application Insights.
+9.	Milestone M1 – Clinical Core
+10.	OASIS & visit forms – Build dynamic forms based on template definitions. Validate required fields and provide save/sign/lock states.
+11.	Care plans & orders – Implement UI for clinicians to define goals, problems and interventions; integrate electronic signatures.
+12.	Scheduling – Develop calendars for staff; include recurrence patterns and conflict detection. Design a mobile‑friendly view.
+13.	Basic reporting – Implement queries for productivity and visit‑utilization reports. Provide export options (CSV, PDF).
+14.	Milestone M2 – EVV + Baseline Billing
+15.	Payer management – Create CRUD interfaces for payer setup, fee schedules and PDGM grouping parameters. Support attachments (contracts).
+16.	EVV integration – Build APIs to capture GPS coordinates and clock‑in/out times. Store events linked to visits.
+17.	Billing engine – Implement algorithms to generate 837I/P files with the correct segments; integrate with clearinghouse APIs for submission and 835 ingestion.
+18.	Milestone M3 – QA Workbench
+19.	Deficiency tracking – Provide a queue that QA reviewers can use to flag issues. Allow clinicians to address deficiencies and resubmit notes.
+20.	Lock rules – Define rules for locking documentation after submission; allow overrides with justification and audit trail.
+21.	Task assignment – Create a task system to assign corrective actions to clinicians with due dates and notifications.
+22.	Milestone M4 – AI Charting Copilot
+23.	Data ingestion pipeline – Build connectors to import prior episodes, discharge summaries, medication lists and labs; normalize and store them.
+24.	Vector index & RAG – Use an open‑source vector database (e.g., Milvus or PostgreSQL with pgvector) to store embeddings of prior documentation. Develop retrieval functions to serve AI prompts.
+25.	Prompt orchestrator – Develop Python/FastAPI service that constructs prompts, calls the LLM (e.g., Azure OpenAI) and returns suggestions. Include metadata for explainability.
+26.	Frontend integration – Display AI suggestions inline within forms; provide accept/reject buttons and highlight missing fields.
+27.	Milestone M5 – Billing Sentinel AI
+28.	Rules engine – Design a rules engine where payer‑specific conditions can be expressed declaratively (e.g., using JSON or YAML). Evaluate rules on claim data.
+29.	Denial analysis – Build parsers to read 835 remittance files, extract denial codes and map them to root causes. Create tasks automatically.
+30.	Simulation (“what‑if”) tool – Provide UI allowing billers to simulate claims under different payer rules and see potential issues.
+31.	Dashboards – Implement metrics (first‑pass rate, denial rate, DAR, dollars at risk). Use charts and filters.
+32.	Milestone M6 – Chart Chat
+33.	Retrieval layer – Ensure queries against the vector index return only documents pertaining to the selected patient/episode. Implement role‑based redaction.
+34.	Chat UI – Integrate a chat component that supports natural‑language queries. Add quick‑actions for generating SOC summaries or other report types.
+35.	Logging – Store conversation history and generated reports in the audit trail.
+36.	Milestone M7 – Volunteer Platform
+37.	Onboarding & compliance – Implement forms for applications, background checks and training modules. Create checklists to verify completion.
+38.	Role definitions & scheduling – Define volunteer roles and tasks. Build scheduling features similar to clinician scheduling but restricted to volunteer assignments.
+39.	Interaction logging – Provide mobile‑friendly interface for volunteers to record visits or calls; capture notes and optional geotags. Implement boundaries (e.g., no access to full chart).
+40.	Impact measurement – Collect metrics like loneliness index or resource connections; generate reports correlating volunteer activity with readmission rates.
+41.	Testing & Quality Assurance
+o	Write unit tests for backend services and component tests for the frontend. Use integration tests for claim generation and AI suggestions.
+o	Conduct manual UAT with clinicians, billers and volunteers. Validate compliance with HIPAA and payer rules.
+42.	Deployment & Monitoring
+o	Use infrastructure‑as‑code to provision Azure resources (App Service, SQL Database, Storage, Key Vault).
+o	Configure continuous deployment pipelines. Monitor application health via Application Insights and set up alerts for critical issues.
+7. Risk Management
+Risk	Mitigation
+AI hallucination – AI might generate incorrect suggestions or data not present in the record[84].
+Strict PHI‑scoped RAG; require human review before accepting suggestions; train models on domain‑specific data and monitor outputs.
+Payer rule changes – Frequent changes in payer requirements can cause claim denials[85].
+Implement versioned rules engine and maintain a test suite per payer. Regularly update rule definitions.
+EVV/state variance – Different states have varying EVV requirements[86].
+Create pluggable EVV adapters per state; maintain compliance documentation.
+Mobile offline edge cases – Sync conflicts or data loss when clinicians work offline[87].
+Implement robust conflict resolution strategies; offer manual merge options and thorough testing.
+8. Artifacts & Preparations
+Prepare the following to accelerate development:
+•	Redlined OASIS and visit note templates – gather existing forms and annotate required changes[88].
+•	Payer rule library – compile payer lists, rule nuances and sample 837/835 files[89].
+•	QA checklists & denial examples – document common deficiencies and reasons for denials[90].
+•	Education content library – map educational materials by diagnosis to support AI suggestions[91].
+•	Volunteer policies & training materials – define volunteer roles, policies and training modules[92].
+9. Nice‑to‑Have Enhancements (Future Phases)
+After core phases, consider features such as route optimization for multi‑visit days, HHCAHPS survey integration with AI‑assisted telephone calls, multilingual patient materials with text‑to‑speech, a family portal for updates and consents, and a training platform[93].
+________________________________________
+Note: The proposed PRD is derived from the supplied requirements document and is intended as a starting point. As you proceed with development, iterate on the design with feedback from end users and subject matter experts to ensure clinical accuracy and regulatory compliance.
+________________________________________
+[1] [2] [3] [4] [5] [6] [7] [8] [9] [10] [11] [12] [13] [14] [15] [16] [17] [18] [19] [20] [21] [22] [23] [24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35] [36] [37] [38] [39] [40] [41] [42] [43] [44] [45] [46] [47] [48] [49] [50] [51] [52] [53] [54] [55] [56] [57] [58] [59] [60] [61] [62] [63] [64] [65] [66] [67] [68] [69] [70] [71] [72] [73] [74] [75] [76] [77] [78] [79] [80] [81] [82] [83] [84] [85] [86] [87] [88] [89] [90] [91] [92] [93] Chart Breaker — Product Outline & Build Plan
+https://docs.google.com/document/d/11hYBWQNAMg1WdRCkfrS4rKJSdl09KvSvVKHX-uiGZoY/mobilebasic

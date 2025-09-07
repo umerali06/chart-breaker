@@ -1,0 +1,502 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  INTAKE_STAFF
+  CLINICIAN
+  QA_REVIEWER
+  BILLER
+  ADMIN
+}
+
+enum GenderType {
+  M
+  F
+  O
+}
+
+enum DisciplineType {
+  SN
+  PT
+  OT
+  ST
+  MSW
+  HHA
+}
+
+enum EpisodeStatus {
+  ACTIVE
+  DISCHARGED
+  SUSPENDED
+  CANCELLED
+}
+
+enum OasisType {
+  SOC
+  ROC
+  RECERT
+  TRANSFER
+  DISCHARGE
+}
+
+enum VisitType {
+  ROUTINE
+  EVALUATION
+  RE_EVALUATION
+  DISCHARGE
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum EvvStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  MANUAL_OVERRIDE
+}
+
+enum PayerCategory {
+  MEDICARE
+  MEDICAID
+  COMMERCIAL
+  PRIVATE_PAY
+}
+
+enum ClaimCategory {
+  CLAIM_837I
+  CLAIM_837P
+}
+
+enum ClaimStatus {
+  PENDING
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  PAID
+  DENIED
+}
+
+enum DocumentType {
+  OASIS
+  VISIT_NOTE
+  CARE_PLAN
+  ORDER
+}
+
+enum QaStatus {
+  PENDING
+  APPROVED
+  DEFICIENT
+  LOCKED
+}
+
+// User Management & RBAC
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  role         UserRole
+  isActive     Boolean  @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  staffProfile StaffProfile?
+  createdPatients Patient[] @relation("PatientCreatedBy")
+  createdEpisodes Episode[] @relation("EpisodeCreatedBy")
+  oasisAssessments OasisAssessment[]
+  visitNotes VisitNote[]
+  carePlans CarePlan[] @relation("CarePlanCreatedBy")
+  schedules Schedule[]
+  evvEvents EvvEvent[]
+  qaReviews QaReview[]
+  auditLogs AuditLog[]
+  documents Document[] @relation("DocumentUploadedBy")
+
+  @@map("users")
+}
+
+model StaffProfile {
+  id            String         @id @default(uuid())
+  userId        String         @unique @map("user_id")
+  employeeId    String?        @unique @map("employee_id")
+  discipline    DisciplineType?
+  licenseNumber String?        @map("license_number")
+  licenseExpiry DateTime?      @map("license_expiry")
+  credentials   Json?
+  competencies  Json?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_profiles")
+}
+
+// Patient Management
+model Patient {
+  id                        String   @id @default(uuid())
+  patientId                 String   @unique @map("patient_id")
+  firstName                 String   @map("first_name")
+  lastName                  String   @map("last_name")
+  dateOfBirth               DateTime @map("date_of_birth")
+  gender                    GenderType
+  ssn                       String?
+  addressLine1              String?  @map("address_line1")
+  addressLine2              String?  @map("address_line2")
+  city                      String?
+  state                     String?
+  zipCode                   String?  @map("zip_code")
+  phone                     String?
+  email                     String?
+  primaryLanguage           String?  @map("primary_language")
+  emergencyContactName      String?  @map("emergency_contact_name")
+  emergencyContactPhone     String?  @map("emergency_contact_phone")
+  emergencyContactRelationship String? @map("emergency_contact_relationship")
+  createdBy                 String?  @map("created_by")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdByUser User? @relation("PatientCreatedBy", fields: [createdBy], references: [id])
+  referrals Referral[]
+  episodes Episode[]
+  oasisAssessments OasisAssessment[]
+  visitNotes VisitNote[]
+  carePlans CarePlan[]
+  physicianOrders PhysicianOrder[]
+  schedules Schedule[]
+  authorizations Authorization[]
+  claims Claim[]
+  documents Document[]
+
+  @@map("patients")
+}
+
+model Referral {
+  id             String   @id @default(uuid())
+  patientId      String   @map("patient_id")
+  referralSource String?  @map("referral_source")
+  referralDate   DateTime @map("referral_date")
+  referralReason String?  @map("referral_reason")
+  physicianName  String?  @map("physician_name")
+  physicianNpi   String?  @map("physician_npi")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("referrals")
+}
+
+model Episode {
+  id                String        @id @default(uuid())
+  patientId         String        @map("patient_id")
+  episodeNumber     String        @unique @map("episode_number")
+  startDate         DateTime      @map("start_date")
+  endDate           DateTime?     @map("end_date")
+  status            EpisodeStatus
+  disciplines       Json
+  frequencyPerWeek  Int?          @map("frequency_per_week")
+  visitDurationMinutes Int?       @map("visit_duration_minutes")
+  careGoals         String?       @map("care_goals")
+  createdBy         String?       @map("created_by")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdByUser User? @relation("EpisodeCreatedBy", fields: [createdBy], references: [id])
+  oasisAssessments OasisAssessment[]
+  visitNotes VisitNote[]
+  carePlans CarePlan[]
+  physicianOrders PhysicianOrder[]
+  schedules Schedule[]
+  authorizations Authorization[]
+  claims Claim[]
+
+  @@map("episodes")
+}
+
+// Assessments & Documentation
+model OasisAssessment {
+  id             String    @id @default(uuid())
+  patientId      String    @map("patient_id")
+  episodeId      String?   @map("episode_id")
+  assessmentType OasisType @map("assessment_type")
+  assessmentDate DateTime  @map("assessment_date")
+  clinicianId    String    @map("clinician_id")
+  formData       Json      @map("form_data")
+  isLocked       Boolean   @default(false) @map("is_locked")
+  isSigned       Boolean   @default(false) @map("is_signed")
+  signedBy       String?   @map("signed_by")
+  signedAt       DateTime? @map("signed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+  clinician User @relation(fields: [clinicianId], references: [id])
+
+  @@map("oasis_assessments")
+}
+
+model VisitNote {
+  id          String       @id @default(uuid())
+  patientId   String       @map("patient_id")
+  episodeId   String?      @map("episode_id")
+  visitDate   DateTime     @map("visit_date")
+  clinicianId String       @map("clinician_id")
+  discipline  DisciplineType
+  visitType   VisitType    @map("visit_type")
+  startTime   DateTime?    @map("start_time")
+  endTime     DateTime?    @map("end_time")
+  notesData   Json         @map("notes_data")
+  isLocked    Boolean      @default(false) @map("is_locked")
+  isSigned    Boolean      @default(false) @map("is_signed")
+  signedBy    String?      @map("signed_by")
+  signedAt    DateTime?    @map("signed_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+  clinician User @relation(fields: [clinicianId], references: [id])
+
+  @@map("visit_notes")
+}
+
+model CarePlan {
+  id          String   @id @default(uuid())
+  patientId   String   @map("patient_id")
+  episodeId   String?  @map("episode_id")
+  planName    String?  @map("plan_name")
+  goals       Json
+  problems    Json
+  interventions Json
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+  createdByUser User @relation("CarePlanCreatedBy", fields: [createdBy], references: [id])
+
+  @@map("care_plans")
+}
+
+model PhysicianOrder {
+  id           String    @id @default(uuid())
+  patientId    String    @map("patient_id")
+  episodeId    String?   @map("episode_id")
+  orderText    String    @map("order_text")
+  physicianName String?  @map("physician_name")
+  physicianNpi String?   @map("physician_npi")
+  orderDate    DateTime  @map("order_date")
+  isSigned     Boolean   @default(false) @map("is_signed")
+  signedAt     DateTime? @map("signed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+
+  @@map("physician_orders")
+}
+
+// Scheduling & Field Operations
+model Schedule {
+  id          String         @id @default(uuid())
+  patientId   String         @map("patient_id")
+  episodeId   String?        @map("episode_id")
+  staffId     String         @map("staff_id")
+  visitDate   DateTime       @map("visit_date")
+  startTime   DateTime       @map("start_time")
+  endTime     DateTime       @map("end_time")
+  discipline  DisciplineType
+  visitType   VisitType      @map("visit_type")
+  status      ScheduleStatus @default(SCHEDULED)
+  notes       String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+  staff User @relation(fields: [staffId], references: [id])
+  evvEvents EvvEvent[]
+
+  @@map("schedules")
+}
+
+model EvvEvent {
+  id                  String    @id @default(uuid())
+  scheduleId          String    @map("schedule_id")
+  staffId             String    @map("staff_id")
+  clockInTime         DateTime? @map("clock_in_time")
+  clockOutTime        DateTime? @map("clock_out_time")
+  gpsLatitude         Decimal?  @map("gps_latitude") @db.Decimal(10, 8)
+  gpsLongitude        Decimal?  @map("gps_longitude") @db.Decimal(11, 8)
+  verificationStatus  EvvStatus @default(PENDING) @map("verification_status")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  staff User @relation(fields: [staffId], references: [id])
+
+  @@map("evv_events")
+}
+
+// Billing & RCM
+model Payer {
+  id          String        @id @default(uuid())
+  payerName   String        @map("payer_name")
+  payerType   PayerCategory @map("payer_type")
+  payerId     String?       @map("payer_id")
+  contactInfo Json?         @map("contact_info")
+  feeSchedule Json?         @map("fee_schedule")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  authorizations Authorization[]
+  claims Claim[]
+
+  @@map("payers")
+}
+
+model Authorization {
+  id                String   @id @default(uuid())
+  patientId         String   @map("patient_id")
+  episodeId         String?  @map("episode_id")
+  payerId           String   @map("payer_id")
+  authNumber        String?  @map("auth_number")
+  authStartDate     DateTime? @map("auth_start_date")
+  authEndDate       DateTime? @map("auth_end_date")
+  visitsAuthorized  Int?     @map("visits_authorized")
+  visitsUsed        Int      @default(0) @map("visits_used")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+  payer Payer @relation(fields: [payerId], references: [id])
+
+  @@map("authorizations")
+}
+
+model Claim {
+  id            String       @id @default(uuid())
+  patientId     String       @map("patient_id")
+  episodeId     String?      @map("episode_id")
+  payerId       String       @map("payer_id")
+  claimNumber   String?      @unique @map("claim_number")
+  claimType     ClaimCategory @map("claim_type")
+  submissionDate DateTime?   @map("submission_date")
+  claimAmount   Decimal?     @map("claim_amount") @db.Decimal(10, 2)
+  status        ClaimStatus  @default(PENDING)
+  hippsCode     String?      @map("hipps_code")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  episode Episode? @relation(fields: [episodeId], references: [id])
+  payer Payer @relation(fields: [payerId], references: [id])
+  remittances Remittance[]
+
+  @@map("claims")
+}
+
+model Remittance {
+  id              String   @id @default(uuid())
+  claimId         String   @map("claim_id")
+  remittanceDate  DateTime? @map("remittance_date")
+  paymentAmount   Decimal? @map("payment_amount") @db.Decimal(10, 2)
+  adjustmentAmount Decimal? @map("adjustment_amount") @db.Decimal(10, 2)
+  remittanceData  Json?    @map("remittance_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@map("remittances")
+}
+
+// QA & Compliance
+model QaReview {
+  id             String      @id @default(uuid())
+  documentId     String      @map("document_id")
+  documentType   DocumentType @map("document_type")
+  reviewerId     String      @map("reviewer_id")
+  reviewDate     DateTime    @map("review_date")
+  status         QaStatus    @default(PENDING)
+  deficiencies   Json?
+  comments       String?
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  reviewer User @relation(fields: [reviewerId], references: [id])
+
+  @@map("qa_reviews")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String
+  tableName  String   @map("table_name")
+  recordId   String   @map("record_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Document Management
+model Document {
+  id          String   @id @default(uuid())
+  patientId   String   @map("patient_id")
+  documentName String  @map("document_name")
+  documentType String  @map("document_type")
+  filePath    String   @map("file_path")
+  fileSize    Int?     @map("file_size")
+  mimeType    String?  @map("mime_type")
+  uploadedBy  String   @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  uploadedByUser User @relation("DocumentUploadedBy", fields: [uploadedBy], references: [id])
+
+  @@map("documents")
+}

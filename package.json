@@ -1,0 +1,47 @@
+{
+  "name": "chart-breaker-ehr",
+  "version": "1.0.0",
+  "description": "Chart Breaker EHR/RCM Platform - Phase 1 MVP",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/server.js",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "start": "node server/server.js",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate",
+    "db:seed": "node server/scripts/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.7.1",
+    "@prisma/client": "^5.7.1",
+    "joi": "^17.11.0",
+    "multer": "^1.4.5-lts.1",
+    "aws-sdk": "^2.1501.0",
+    "redis": "^4.6.12",
+    "bull": "^4.12.2",
+    "nodemailer": "^6.9.7",
+    "moment": "^2.29.4",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "ehr",
+    "healthcare",
+    "rcm",
+    "home-health",
+    "oasis"
+  ],
+  "author": "Chart Breaker Team",
+  "license": "MIT"
+}
