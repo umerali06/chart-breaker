@@ -32,6 +32,39 @@ const patientSchema = Joi.object({
 
 const patientUpdateSchema = patientSchema.fork(['patientId'], (schema) => schema.optional());
 
+// Get patients for selector (lightweight list)
+router.get('/selector', async (req, res) => {
+  try {
+    const { search } = req.query;
+    const where = {
+      ...(search && {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { patientId: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const patients = await prisma.patient.findMany({
+      where,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        patientId: true,
+      },
+      orderBy: { lastName: 'asc' },
+      take: 20, // Limit results for selector
+    });
+
+    res.json({ success: true, data: patients });
+  } catch (error) {
+    console.error('Error fetching patients for selector:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch patients for selector', error: error.message });
+  }
+});
+
 // Get all patients with pagination and filtering
 router.get('/', async (req, res) => {
   try {
@@ -58,13 +91,13 @@ router.get('/', async (req, res) => {
         where,
         include: {
           episodes: {
-            where: { status: 'ACTIVE' },
-            select: { id: true, episodeNumber: true, status: true, startDate: true }
+            select: { id: true, episodeNumber: true, status: true, startDate: true },
+            orderBy: { createdAt: 'desc' }
           },
           _count: {
             select: {
               episodes: true,
-              visitNotes: true
+              schedules: true
             }
           }
         },
@@ -125,6 +158,28 @@ router.get('/:patientId', requirePatientAccess, async (req, res) => {
         },
         documents: {
           orderBy: { createdAt: 'desc' }
+        },
+        schedules: {
+          include: {
+            staff: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          },
+          orderBy: { visitDate: 'desc' }
+        },
+        oasisAssessments: {
+          include: {
+            clinician: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          },
+          orderBy: { assessmentDate: 'desc' }
         }
       }
     });

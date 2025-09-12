@@ -47,7 +47,7 @@ router.get('/reviews', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) =
 // Create QA review
 router.post('/reviews', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) => {
   try {
-    const { documentId, documentType, deficiencies, comments } = req.body;
+    const { documentId, documentType, status, deficiencies, comments } = req.body;
 
     const review = await prisma.qaReview.create({
       data: {
@@ -55,8 +55,12 @@ router.post('/reviews', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) 
         documentType,
         reviewerId: req.user.id,
         reviewDate: new Date(),
+        status: status || 'PENDING',
         deficiencies,
         comments
+      },
+      include: {
+        reviewer: { select: { id: true, firstName: true, lastName: true } }
       }
     });
 
@@ -67,6 +71,73 @@ router.post('/reviews', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) 
 
   } catch (error) {
     console.error('Create QA review error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get single QA review
+router.get('/reviews/:reviewId', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) => {
+  try {
+    const review = await prisma.qaReview.findUnique({
+      where: { id: req.params.reviewId },
+      include: {
+        reviewer: { select: { id: true, firstName: true, lastName: true } }
+      }
+    });
+
+    if (!review) {
+      return res.status(404).json({ error: 'QA review not found' });
+    }
+
+    res.json({ review });
+
+  } catch (error) {
+    console.error('Get QA review error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update QA review
+router.put('/reviews/:reviewId', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) => {
+  try {
+    const { documentId, documentType, status, deficiencies, comments } = req.body;
+
+    const review = await prisma.qaReview.update({
+      where: { id: req.params.reviewId },
+      data: {
+        documentId,
+        documentType,
+        status,
+        deficiencies,
+        comments
+      },
+      include: {
+        reviewer: { select: { id: true, firstName: true, lastName: true } }
+      }
+    });
+
+    res.json({
+      message: 'QA review updated successfully',
+      review
+    });
+
+  } catch (error) {
+    console.error('Update QA review error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete QA review
+router.delete('/reviews/:reviewId', requireRole(['QA_REVIEWER', 'ADMIN']), async (req, res) => {
+  try {
+    await prisma.qaReview.delete({
+      where: { id: req.params.reviewId }
+    });
+
+    res.json({ message: 'QA review deleted successfully' });
+
+  } catch (error) {
+    console.error('Delete QA review error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

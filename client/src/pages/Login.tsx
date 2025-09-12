@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
-  Card,
-  CardContent,
   TextField,
   Button,
   Typography,
@@ -18,6 +16,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -25,10 +24,15 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
-      await login(email, password);
+      // Use the AuthContext login function which now returns user data
+      const userData = await login(email, password);
+      
+      // Redirect all users to dashboard (admin features will be shown there)
+      setSuccess('Login successful! Redirecting to Dashboard...');
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -60,6 +64,12 @@ const Login: React.FC = () => {
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {success}
             </Alert>
           )}
 
@@ -105,14 +115,29 @@ const Login: React.FC = () => {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'bold' }}>
               Demo Credentials:
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Admin: admin@chartbreaker.com / admin123
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <strong>👑 Admin:</strong> admin@chartbreaker.com / admin123
+              <br />
+              <em style={{ fontSize: '0.8em', color: '#666' }}>→ Full access to all features</em>
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <strong>👩‍⚕️ Clinician:</strong> nurse@chartbreaker.com / clinician123
+              <br />
+              <em style={{ fontSize: '0.8em', color: '#666' }}>→ Clinical features access</em>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Clinician: nurse@chartbreaker.com / clinician123
+              <strong>📋 Intake:</strong> intake@chartbreaker.com / intake123
+              <br />
+              <em style={{ fontSize: '0.8em', color: '#666' }}>→ Patient intake features</em>
             </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Intake: intake@chartbreaker.com / intake123
+              Don't have an account?{' '}
+              <Link to="/signup" style={{ textDecoration: 'none', color: '#1976d2' }}>
+                Request access here
+              </Link>
             </Typography>
           </Box>
         </Paper>

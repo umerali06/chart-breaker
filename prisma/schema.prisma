@@ -97,6 +97,15 @@ enum DocumentType {
   VISIT_NOTE
   CARE_PLAN
   ORDER
+  MEDICAL_RECORD
+  INSURANCE_CARD
+  IDENTIFICATION
+  CONSENT_FORM
+  ASSESSMENT
+  PHYSICIAN_ORDER
+  LAB_RESULT
+  IMAGING
+  OTHER
 }
 
 enum QaStatus {
@@ -128,6 +137,7 @@ model User {
   carePlans CarePlan[] @relation("CarePlanCreatedBy")
   schedules Schedule[]
   evvEvents EvvEvent[]
+  approvedRegistrations UserRegistrationRequest[] @relation("RegistrationApprovedBy")
   qaReviews QaReview[]
   auditLogs AuditLog[]
   documents Document[] @relation("DocumentUploadedBy")
@@ -482,21 +492,84 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Physician Management
+model Physician {
+  id        String   @id @default(uuid())
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  npi       String   @unique
+  specialty String?
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("physicians")
+}
+
 // Document Management
 model Document {
   id          String   @id @default(uuid())
   patientId   String   @map("patient_id")
-  documentName String  @map("document_name")
-  documentType String  @map("document_type")
+  fileName    String   @map("file_name")
+  originalName String  @map("original_name")
+  fileType    String   @map("file_type")
+  fileSize    Int      @map("file_size")
   filePath    String   @map("file_path")
-  fileSize    Int?     @map("file_size")
-  mimeType    String?  @map("mime_type")
+  documentType DocumentType @map("document_type")
+  description String?
   uploadedBy  String   @map("uploaded_by")
+  isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   uploadedByUser User @relation("DocumentUploadedBy", fields: [uploadedBy], references: [id])
 
   @@map("documents")
+}
+
+
+// User Verification & Registration System
+model UserRegistrationRequest {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  role        UserRole
+  status      RegistrationStatus @default(PENDING)
+  verificationCode String? @map("verification_code")
+  verificationExpires DateTime? @map("verification_expires")
+  adminNotes  String? @map("admin_notes")
+  requestedAt DateTime @default(now()) @map("requested_at")
+  approvedAt  DateTime? @map("approved_at")
+  approvedBy  String? @map("approved_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  approvedByUser User? @relation("RegistrationApprovedBy", fields: [approvedBy], references: [id])
+
+  @@map("user_registration_requests")
+}
+
+model EmailVerification {
+  id          String   @id @default(uuid())
+  email       String
+  code        String
+  expiresAt   DateTime @map("expires_at")
+  isUsed      Boolean  @default(false) @map("is_used")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("email_verifications")
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
 }

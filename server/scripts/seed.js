@@ -50,7 +50,7 @@ async function main() {
     }
   });
 
-  const qaPassword = await bcrypt.hash('qa123', 12);
+  const qaPassword = await bcrypt.hash('qa123456', 12);
   const qaUser = await prisma.user.upsert({
     where: { email: 'qa@chartbreaker.com' },
     update: {},
@@ -99,10 +99,8 @@ async function main() {
   });
 
   // Create sample payers
-  const medicare = await prisma.payer.upsert({
-    where: { payerName: 'Medicare' },
-    update: {},
-    create: {
+  const medicare = await prisma.payer.create({
+    data: {
       payerName: 'Medicare',
       payerType: 'MEDICARE',
       payerId: 'MED001',
@@ -121,10 +119,8 @@ async function main() {
     }
   });
 
-  const medicaid = await prisma.payer.upsert({
-    where: { payerName: 'Colorado Medicaid' },
-    update: {},
-    create: {
+  const medicaid = await prisma.payer.create({
+    data: {
       payerName: 'Colorado Medicaid',
       payerType: 'MEDICAID',
       payerId: 'CO_MED001',
@@ -186,15 +182,8 @@ async function main() {
   });
 
   // Create sample authorization
-  await prisma.authorization.upsert({
-    where: { 
-      patientId_payerId: {
-        patientId: patient.id,
-        payerId: medicare.id
-      }
-    },
-    update: {},
-    create: {
+  await prisma.authorization.create({
+    data: {
       patientId: patient.id,
       episodeId: episode.id,
       payerId: medicare.id,
@@ -211,7 +200,7 @@ async function main() {
   console.log('Admin: admin@chartbreaker.com / admin123');
   console.log('Intake: intake@chartbreaker.com / intake123');
   console.log('Clinician: nurse@chartbreaker.com / clinician123');
-  console.log('QA: qa@chartbreaker.com / qa123');
+  console.log('QA: qa@chartbreaker.com / qa123456');
   console.log('Biller: biller@chartbreaker.com / biller123');
 }
 

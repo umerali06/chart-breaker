@@ -39,6 +39,16 @@ export const mockPatients = [
         episodeNumber: 'E001',
         status: 'ACTIVE',
         startDate: '2024-01-01',
+        endDate: undefined,
+        disciplines: ['SN', 'PT'],
+      },
+    ],
+    referrals: [
+      {
+        id: '1',
+        referralSource: 'Dr. Smith',
+        referralDate: '2024-01-01',
+        physicianName: 'Dr. Smith',
       },
     ],
     _count: {
@@ -60,6 +70,16 @@ export const mockPatients = [
         episodeNumber: 'E002',
         status: 'ACTIVE',
         startDate: '2024-01-15',
+        endDate: undefined,
+        disciplines: ['SN', 'OT'],
+      },
+    ],
+    referrals: [
+      {
+        id: '2',
+        referralSource: 'Dr. Johnson',
+        referralDate: '2024-01-15',
+        physicianName: 'Dr. Johnson',
       },
     ],
     _count: {

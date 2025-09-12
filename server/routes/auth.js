@@ -3,8 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
 const router = express.Router();
 
 // Validation schemas
@@ -23,7 +21,25 @@ const registerSchema = Joi.object({
 
 // Login endpoint
 router.post('/login', async (req, res) => {
+  // Debug environment variables
+  console.log('Environment variables:', {
+    DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV,
+    JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'NOT SET'
+  });
+  
+  // Ensure DATABASE_URL is set
+  if (!process.env.DATABASE_URL) {
+    console.error('DATABASE_URL not found in environment variables');
+    return res.status(500).json({
+      error: 'Database configuration error',
+      code: 'DATABASE_CONFIG_ERROR'
+    });
+  }
+  
+  const prisma = new PrismaClient();
   try {
+    console.log('Login attempt:', req.body);
     const { error, value } = loginSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
@@ -91,10 +107,14 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       error: 'Internal server error',
-      code: 'INTERNAL_ERROR'
+      code: 'INTERNAL_ERROR',
+      message: error.message
     });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 

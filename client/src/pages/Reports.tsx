@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -13,15 +13,14 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Chip,
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
   TrendingUp as TrendingUpIcon,
   Download as DownloadIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
-import { mockApi } from '../services/mockApi';
+import { useNavigate } from 'react-router-dom';
+import { reportsApi } from '../services/api';
 
 interface DashboardStats {
   totalPatients: number;
@@ -32,23 +31,49 @@ interface DashboardStats {
 }
 
 const Reports: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await mockApi.getDashboardStats();
-      setStats(response.stats);
+      const response = await reportsApi.getDashboardStats();
+      setStats(response.data);
     } catch (err: any) {
       setError(err.message || 'Failed to load reports');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const handleGenerateReport = (reportType: string) => {
+    switch (reportType) {
+      case 'Patient Census Report':
+        navigate('/reports/patient-census');
+        break;
+      case 'Episode Summary':
+        navigate('/reports/episode-summary');
+        break;
+      case 'Visit Productivity':
+        navigate('/reports/visit-productivity');
+        break;
+      case 'Billing Summary':
+        navigate('/reports/billing-summary');
+        break;
+      case 'QA Compliance':
+        navigate('/reports/qa-compliance');
+        break;
+      case 'OASIS Export':
+        navigate('/reports/oasis-export');
+        break;
+      default:
+        alert('Report not yet implemented!');
     }
   };
 
@@ -120,7 +145,7 @@ const Reports: React.FC = () => {
               </Typography>
               <Grid container spacing={2}>
                 {reportTypes.map((report, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={index}>
+                  <Grid item xs={12} sm={6} lg={4} key={index}>
                     <Paper
                       elevation={2}
                       sx={{
@@ -148,6 +173,7 @@ const Reports: React.FC = () => {
                         size="small"
                         startIcon={<DownloadIcon />}
                         fullWidth
+                        onClick={() => handleGenerateReport(report.title)}
                       >
                         Generate
                       </Button>
@@ -193,7 +219,7 @@ const Reports: React.FC = () => {
                   </ListItem>
                   <ListItem>
                     <ListItemText
-                      primary="QA Reviews"
+                      primary="Total QA Reviews"
                       secondary={stats.pendingQaReviews}
                     />
                   </ListItem>
@@ -213,8 +239,8 @@ const Reports: React.FC = () => {
                     <DownloadIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary="Patient Census - January 2024"
-                    secondary="Generated 2 hours ago"
+                    primary="Patient Census Report"
+                    secondary="Click Generate to create"
                   />
                 </ListItem>
                 <ListItem>
@@ -222,8 +248,8 @@ const Reports: React.FC = () => {
                     <DownloadIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary="Billing Summary - Q4 2023"
-                    secondary="Generated 1 day ago"
+                    primary="Episode Summary Report"
+                    secondary="Click Generate to create"
                   />
                 </ListItem>
                 <ListItem>
@@ -231,8 +257,8 @@ const Reports: React.FC = () => {
                     <DownloadIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary="OASIS Export - December 2023"
-                    secondary="Generated 3 days ago"
+                    primary="Billing Summary Report"
+                    secondary="Click Generate to create"
                   />
                 </ListItem>
               </List>

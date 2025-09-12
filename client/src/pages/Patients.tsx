@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -31,10 +31,8 @@ import {
   Add as AddIcon,
   MoreVert as MoreVertIcon,
   Search as SearchIcon,
-  FilterList as FilterIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
-import { mockApi } from '../services/mockApi';
+import { patientsApi } from '../services/api';
 
 interface Patient {
   id: string;
@@ -52,7 +50,7 @@ interface Patient {
   }>;
   _count: {
     episodes: number;
-    visitNotes: number;
+    schedules: number;
   };
 }
 
@@ -68,27 +66,27 @@ const Patients: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchPatients();
-  }, [page, searchTerm, statusFilter]);
-
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await mockApi.getPatients({
+      const response = await patientsApi.getPatients({
         page,
         limit: 10,
         search: searchTerm,
         status: statusFilter,
       });
-      setPatients(response.patients);
-      setTotalPages(response.pagination.pages);
+      setPatients(response.data.patients);
+      setTotalPages(response.data.pagination.pages);
     } catch (err: any) {
       setError(err.message || 'Failed to load patients');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -119,8 +117,21 @@ const Patients: React.FC = () => {
 
   const handleEditPatient = () => {
     if (selectedPatient) {
-      // Navigate to edit page or open edit modal
-      console.log('Edit patient:', selectedPatient.id);
+      navigate(`/patients/${selectedPatient.id}/edit`);
+    }
+    handleMenuClose();
+  };
+
+  const handleCreateEpisode = () => {
+    if (selectedPatient) {
+      navigate(`/episodes/new/${selectedPatient.id}`);
+    }
+    handleMenuClose();
+  };
+
+  const handleScheduleVisit = () => {
+    if (selectedPatient) {
+      navigate(`/schedules/new/${selectedPatient.id}`);
     }
     handleMenuClose();
   };
@@ -139,9 +150,26 @@ const Patients: React.FC = () => {
         return 'warning';
       case 'CANCELLED':
         return 'error';
+      case 'No Episodes':
+        return 'default';
       default:
         return 'default';
     }
+  };
+
+  const getPatientStatus = (patient: Patient) => {
+    if (patient._count.episodes === 0) {
+      return 'No Episodes';
+    }
+    
+    // Find the most recent active episode
+    const activeEpisode = patient.episodes.find(ep => ep.status === 'ACTIVE');
+    if (activeEpisode) {
+      return activeEpisode.status;
+    }
+    
+    // If no active episode, return the most recent episode status
+    return patient.episodes[0]?.status || 'No Episodes';
   };
 
   if (loading) {
@@ -153,7 +181,13 @@ const Patients: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ 
+      width: '100%', 
+      maxWidth: '100%',
+      overflow: 'hidden',
+      minWidth: 0,
+      boxSizing: 'border-box'
+    }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           Patients
@@ -173,8 +207,19 @@ const Patients: React.FC = () => {
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
+      <Card sx={{ 
+        width: '100%', 
+        maxWidth: '100%',
+        overflow: 'hidden',
+        boxSizing: 'border-box'
+      }}>
+        <CardContent sx={{ 
+          width: '100%', 
+          overflow: 'hidden',
+          maxWidth: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box'
+        }}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} md={6}>
               <TextField
@@ -205,59 +250,140 @@ const Patients: React.FC = () => {
             </Grid>
           </Grid>
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Patient ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>DOB</TableCell>
-                  <TableCell>Gender</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Episodes</TableCell>
-                  <TableCell>Visits</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {patients.map((patient) => (
-                  <TableRow key={patient.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {patient.patientId}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {patient.firstName} {patient.lastName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{formatDate(patient.dateOfBirth)}</TableCell>
-                    <TableCell>{patient.gender}</TableCell>
-                    <TableCell>{patient.phone || '-'}</TableCell>
-                    <TableCell>{patient._count.episodes}</TableCell>
-                    <TableCell>{patient._count.visitNotes}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={patient.episodes[0]?.status || 'No Episodes'}
-                        color={getStatusColor(patient.episodes[0]?.status || 'default') as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, patient)}
-                        size="small"
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
+          <Box sx={{
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            border: '1px solid #e0e0e0',
+            borderRadius: 1,
+            boxSizing: 'border-box',
+            minWidth: 0
+          }}>
+            <TableContainer 
+              component={Paper} 
+              sx={{ 
+                width: '100%',
+                maxWidth: '100%',
+                overflowX: 'auto',
+                overflowY: 'visible',
+                display: 'block',
+                maxHeight: 'none',
+                minWidth: 0,
+                '& .MuiTable-root': {
+                  minWidth: 800,
+                  width: 'max-content'
+                },
+                '&::-webkit-scrollbar': {
+                  height: '8px',
+                  width: '8px'
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#c1c1c1',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: '#a8a8a8',
+                  },
+                },
+              }}
+            >
+              <Table sx={{ 
+                minWidth: 800,
+                tableLayout: 'auto',
+                width: 'max-content'
+              }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Patient ID</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Name</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>DOB</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Gender</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Phone</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Episodes</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Scheduled Visits</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }}>Status</TableCell>
+                    <TableCell sx={{ 
+                      fontWeight: 'bold', 
+                      whiteSpace: 'nowrap'
+                    }} align="right">Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {patients.map((patient) => (
+                    <TableRow key={patient.id} hover>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          {patient.patientId}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Typography variant="body2">
+                          {patient.firstName} {patient.lastName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {formatDate(patient.dateOfBirth)}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {patient.gender}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {patient.phone || '-'}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {patient._count.episodes}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {patient._count.schedules}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getPatientStatus(patient)}
+                          color={getStatusColor(getPatientStatus(patient)) as any}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          onClick={(e) => handleMenuOpen(e, patient)}
+                          size="small"
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
 
           {totalPages > 1 && (
             <Box display="flex" justifyContent="center" mt={3}>
@@ -279,8 +405,8 @@ const Patients: React.FC = () => {
       >
         <MenuItem onClick={handleViewPatient}>View Details</MenuItem>
         <MenuItem onClick={handleEditPatient}>Edit</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Schedule Visit</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Create Episode</MenuItem>
+        <MenuItem onClick={handleScheduleVisit}>Schedule Visit</MenuItem>
+        <MenuItem onClick={handleCreateEpisode}>Create Episode</MenuItem>
       </Menu>
     </Box>
   );

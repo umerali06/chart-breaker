@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
-import { mockApi } from '../services/mockApi';
+import { authApi } from '../services/api';
 
 interface User {
   id: string;
@@ -21,7 +20,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   loading: boolean;
   isAuthenticated: boolean;
@@ -29,36 +28,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Configure axios defaults
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-axios.defaults.baseURL = API_BASE_URL;
-
-// Add request interceptor to include token
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor to handle token expiration
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -84,17 +53,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Use mock API for testing without backend
-      const response = await mockApi.login(email, password);
-      const { token: newToken, user: userData } = response;
+      // Use real API
+      const response = await authApi.login(email, password);
+      const { token: newToken, user: userData } = response.data;
       
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       
       setToken(newToken);
       setUser(userData);
+      
+      return userData;
     } catch (error: any) {
-      const errorMessage = error.message || 'Login failed';
+      console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || error.message || 'Login failed';
       throw new Error(errorMessage);
     } finally {
       setLoading(false);

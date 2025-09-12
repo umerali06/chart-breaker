@@ -28,7 +28,7 @@ import {
   Payment as PaymentIcon,
   VerifiedUser as VerifiedUserIcon,
   BarChart as BarChartIcon,
-  AccountCircle as AccountCircleIcon,
+  Description as DocumentIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
@@ -84,6 +84,18 @@ const navigationItems: NavigationItem[] = [
     text: 'Reports',
     icon: <BarChartIcon />,
     path: '/reports',
+  },
+  {
+    text: 'Physicians',
+    icon: <PeopleIcon />,
+    path: '/physicians',
+    roles: ['ADMIN', 'INTAKE_STAFF'],
+  },
+  {
+    text: 'Documents',
+    icon: <DocumentIcon />,
+    path: '/documents',
+    roles: ['ADMIN', 'INTAKE_STAFF', 'CLINICIAN'],
   },
 ];
 
@@ -273,7 +285,10 @@ const Layout: React.FC = () => {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: { md: `calc(100vw - ${drawerWidth}px)` },
           mt: 8,
+          overflow: 'hidden',
+          boxSizing: 'border-box'
         }}
       >
         <Outlet />

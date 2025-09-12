@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -22,10 +23,25 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
+  Tooltip,
+  Menu,
+  ListItemIcon,
+  ListItemText,
+  Snackbar,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
-import axios from 'axios';
-import { mockApi } from '../services/mockApi';
+import { 
+  Search as SearchIcon, 
+  Add as AddIcon,
+  MoreVert as MoreVertIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Lock as LockIcon,
+} from '@mui/icons-material';
+import { qaApi } from '../services/api';
 
 interface QAReview {
   id: string;
@@ -42,6 +58,7 @@ interface QAReview {
 }
 
 const QA: React.FC = () => {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState<QAReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,28 +66,32 @@ const QA: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedReview, setSelectedReview] = useState<QAReview | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [page, searchTerm, statusFilter]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await mockApi.getQAReviews({
+      const response = await qaApi.getReviews({
         page,
         limit: 10,
         search: searchTerm,
         status: statusFilter,
       });
-      setReviews(response.reviews);
-      setTotalPages(response.pagination.pages);
+      setReviews(response.data.reviews);
+      setTotalPages(response.data.pagination.pages);
     } catch (err: any) {
       setError(err.message || 'Failed to load QA reviews');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -91,6 +112,62 @@ const QA: React.FC = () => {
     }
   };
 
+  const handleNewReviewClick = () => {
+    navigate('/qa/new');
+  };
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, review: QAReview) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedReview(review);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedReview(null);
+  };
+
+  const handleViewReview = () => {
+    if (selectedReview) {
+      navigate(`/qa/reviews/${selectedReview.id}`);
+    }
+    handleMenuClose();
+  };
+
+  const handleEditReview = () => {
+    if (selectedReview) {
+      navigate(`/qa/reviews/${selectedReview.id}/edit`);
+    }
+    handleMenuClose();
+  };
+
+  const handleDeleteReview = async () => {
+    if (selectedReview) {
+      try {
+        await qaApi.deleteReview(selectedReview.id);
+        setSuccessMessage('QA review deleted successfully!');
+        setShowSuccessToast(true);
+        fetchReviews();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to delete QA review');
+      }
+    }
+    handleMenuClose();
+  };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (selectedReview) {
+      try {
+        await qaApi.updateReview(selectedReview.id, { status: newStatus });
+        setSuccessMessage(`QA review status updated to ${newStatus}!`);
+        setShowSuccessToast(true);
+        fetchReviews();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to update QA review status');
+      }
+    }
+    handleMenuClose();
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -100,11 +177,24 @@ const QA: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ 
+      width: '100%', 
+      maxWidth: '100%',
+      overflow: 'hidden',
+      minWidth: 0,
+      boxSizing: 'border-box'
+    }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           QA & Compliance
         </Typography>
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />}
+          onClick={handleNewReviewClick}
+        >
+          New Review
+        </Button>
       </Box>
 
       {error && (
@@ -113,8 +203,19 @@ const QA: React.FC = () => {
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
+      <Card sx={{ 
+        width: '100%', 
+        maxWidth: '100%',
+        overflow: 'hidden',
+        boxSizing: 'border-box'
+      }}>
+        <CardContent sx={{ 
+          width: '100%', 
+          overflow: 'hidden',
+          maxWidth: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box'
+        }}>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} md={4}>
               <TextField
@@ -133,7 +234,7 @@ const QA: React.FC = () => {
                 <Select
                   value={statusFilter}
                   label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e: any) => setStatusFilter(e.target.value)}
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="PENDING">Pending</MenuItem>
@@ -145,8 +246,51 @@ const QA: React.FC = () => {
             </Grid>
           </Grid>
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
+          <Box sx={{
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            border: '1px solid #e0e0e0',
+            borderRadius: 1,
+            boxSizing: 'border-box',
+            minWidth: 0
+          }}>
+            <TableContainer 
+              component={Paper} 
+              sx={{ 
+                width: '100%',
+                maxWidth: '100%',
+                overflowX: 'auto',
+                overflowY: 'visible',
+                display: 'block',
+                maxHeight: 'none',
+                minWidth: 0,
+                '& .MuiTable-root': {
+                  minWidth: 800,
+                  width: 'max-content'
+                },
+                '&::-webkit-scrollbar': {
+                  height: '8px',
+                  width: '8px'
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#c1c1c1',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: '#a8a8a8',
+                  },
+                },
+              }}
+            >
+              <Table sx={{ 
+                minWidth: 800,
+                tableLayout: 'auto',
+                width: 'max-content'
+              }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Document Type</TableCell>
@@ -155,6 +299,7 @@ const QA: React.FC = () => {
                   <TableCell>Status</TableCell>
                   <TableCell>Deficiencies</TableCell>
                   <TableCell>Comments</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -178,11 +323,22 @@ const QA: React.FC = () => {
                     <TableCell>
                       {review.comments ? 'Yes' : 'No'}
                     </TableCell>
+                    <TableCell>
+                      <Tooltip title="Actions">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleMenuClick(e, review)}
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          </TableContainer>
+              </Table>
+            </TableContainer>
+          </Box>
 
           {totalPages > 1 && (
             <Box display="flex" justifyContent="center" mt={3}>
@@ -196,6 +352,74 @@ const QA: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={handleViewReview}>
+          <ListItemIcon>
+            <ViewIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>View Details</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleEditReview}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit Review</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusUpdate('APPROVED')}>
+          <ListItemIcon>
+            <CheckCircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Mark as Approved</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusUpdate('DEFICIENT')}>
+          <ListItemIcon>
+            <CancelIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Mark as Deficient</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusUpdate('LOCKED')}>
+          <ListItemIcon>
+            <LockIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Lock Review</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDeleteReview} sx={{ color: 'error.main' }}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Delete Review</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Success Toast */}
+      <Snackbar
+        open={showSuccessToast}
+        autoHideDuration={3000}
+        onClose={() => setShowSuccessToast(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowSuccessToast(false)} 
+          severity="success" 
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
