@@ -103,7 +103,6 @@ const authLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req, res) => req.ip,
 });
 app.use('/api/auth', authLimiter);
 app.use('/api/auth-verification', authLimiter);

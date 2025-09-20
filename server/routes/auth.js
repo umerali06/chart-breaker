@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const router = express.Router();
 
 // Validation schemas
@@ -34,7 +35,6 @@ router.post('/login', async (req, res) => {
     });
   }
   
-  const prisma = new PrismaClient();
   try {
     const { error, value } = loginSchema.validate(req.body);
     if (error) {
@@ -110,7 +110,7 @@ router.post('/login', async (req, res) => {
       message: error.message
     });
   } finally {
-    await prisma.$disconnect();
+    // Do not disconnect shared Prisma client in request scope
   }
 });
 
