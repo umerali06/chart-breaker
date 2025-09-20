@@ -1,6 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Resolve API base URL with production-safe defaults
+const resolveApiBaseUrl = (): string => {
+  const fromEnv = (process.env.REACT_APP_API_URL || '').trim();
+  if (fromEnv) return fromEnv; // Explicit override
+
+  // In production, prefer same-origin '/api' if backend is proxied behind the app
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    const origin = window.location.origin.replace(/\/$/, '');
+    return `${origin}/api`;
+  }
+
+  // Development fallback
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 // Create axios instance with default config
 const api = axios.create({
