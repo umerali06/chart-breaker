@@ -13,6 +13,9 @@ client/.turbo/
 client/.vite/
 
 env.example
+.env.*
+*.env
+.envrc
 
 
 .env
