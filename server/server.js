@@ -2,11 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const envPath = path.join(__dirname,  '.env');
 console.log('Looking for .env at:', envPath);
 
 require('dotenv').config({ path: envPath });
-console.log('Loaded ENV:', process.env.DATABASE_URL, process.env.CLIENT_URL);
+console.log('Loaded ENV:', {
+  DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+  CLIENT_URL: process.env.CLIENT_URL || 'NOT SET'
+});
 
 
 const nodemailer = require('nodemailer');
@@ -36,6 +40,29 @@ verifySMTP();
 // Initialize database connection after environment variables are loaded
 const prisma = require('./database');
 
+async function ensureAdminUser() {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@chartbreaker.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  try {
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {},
+      create: {
+        email: adminEmail,
+        passwordHash,
+        firstName: 'System',
+        lastName: 'Administrator',
+        role: 'ADMIN',
+        isActive: true,
+      },
+    });
+    console.log(`✅ Admin ensured: ${adminEmail}`);
+  } catch (err) {
+    console.error('❌ Failed to ensure admin user:', err.message);
+  }
+}
+
 const authRoutes = require('./routes/auth');
 const authVerificationRoutes = require('./routes/auth-verification');
 const patientRoutes = require('./routes/patients');
@@ -53,6 +80,9 @@ const documentRoutes = require('./routes/documents');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Respect proxy headers on Render/Heroku/NGINX so req.ip is correct
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet({
@@ -73,6 +103,7 @@ const authLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req, res) => req.ip,
 });
 app.use('/api/auth', authLimiter);
 app.use('/api/auth-verification', authLimiter);
@@ -140,7 +171,8 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await ensureAdminUser();
   console.log(`Chart Breaker EHR Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
