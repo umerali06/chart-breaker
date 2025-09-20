@@ -15,5 +15,9 @@ client/.vite/
 env.example
 
 
+.env
 
+.env.local
+
+env
 
