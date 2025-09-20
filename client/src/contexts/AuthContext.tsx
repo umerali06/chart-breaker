@@ -44,7 +44,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (storedToken && storedUser) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+      } catch {
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
@@ -55,14 +60,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Use real API
       const response = await authApi.login(email, password);
-      const { token: newToken, user: userData } = response.data;
-      
+      const { token: newToken } = response.data;
+
+      // Persist token first
       localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
       setToken(newToken);
+
+      // Immediately fetch canonical user profile bound to the token (prevents role/token mismatch)
+      const profile = await authApi.getProfile();
+      const userData = profile.data.user;
+      localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      
+
       return userData;
     } catch (error: any) {
       console.error('Login error:', error);

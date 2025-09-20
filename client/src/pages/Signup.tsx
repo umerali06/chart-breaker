@@ -314,7 +314,7 @@ const Signup: React.FC = () => {
                 </Alert>
               </Grid>
 
-              <Grid item xs={12}>
+              {/* <Grid item xs={12}>
                 <Alert severity="success" sx={{ mb: 2 }}>
                   <Typography variant="h6" gutterBottom>
                     🔐 Set Your Password
@@ -356,7 +356,7 @@ const Signup: React.FC = () => {
                 >
                   {loading ? <CircularProgress size={24} /> : 'Set Password & Complete Registration'}
                 </Button>
-              </Grid>
+              </Grid> */}
               
               <Grid item xs={12}>
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
