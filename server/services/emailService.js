@@ -39,7 +39,7 @@ class EmailService {
     }
   }
 
-  async sendRegistrationApprovalEmail(email, firstName, adminName) {
+  async sendRegistrationApprovalEmail(email, firstName, adminName, completionToken) {
     // Skip email sending if SMTP is not configured
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       console.log('SMTP not configured, skipping approval email to:', email);
@@ -50,7 +50,7 @@ class EmailService {
       from: `"Chart Breaker EHR" <${process.env.SMTP_USER}>`,
       to: email,
       subject: 'Registration Approved - Chart Breaker EHR',
-      html: this.getApprovalEmailTemplate(firstName, adminName)
+      html: this.getApprovalEmailTemplate(firstName, adminName, email, completionToken)
     };
 
     try {
@@ -138,7 +138,7 @@ class EmailService {
     `;
   }
 
-  getApprovalEmailTemplate(firstName, adminName) {
+  getApprovalEmailTemplate(firstName, adminName, email, completionToken) {
     return `
       <!DOCTYPE html>
       <html>
@@ -173,7 +173,7 @@ class EmailService {
             <p>Great news! Your registration request has been approved by ${adminName}.</p>
             <p>You can now complete your account setup and access the Chart Breaker EHR system.</p>
             
-            <a href="${process.env.CLIENT_URL}/complete-registration" class="button">
+            <a href="${process.env.CLIENT_URL}/complete-registration?email=${encodeURIComponent(email || '')}&token=${encodeURIComponent(completionToken || '')}" class="button">
               Complete Registration
             </a>
             

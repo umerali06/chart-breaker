@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import CompleteRegistration from './pages/CompleteRegistration';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import NewPatient from './pages/NewPatient';
@@ -94,6 +95,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/complete-registration" element={<CompleteRegistration />} />
             <Route
               path="/"
               element={

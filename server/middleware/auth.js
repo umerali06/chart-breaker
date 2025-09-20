@@ -7,8 +7,9 @@ const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log('Auth header:', authHeader);
-  console.log('Token:', token ? 'Present' : 'Missing');
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Auth header present:', !!authHeader);
+  }
 
   if (!token) {
     return res.status(401).json({ 
@@ -19,7 +20,6 @@ const authenticateToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('JWT decoded:', decoded);
     
     // Verify user still exists and is active
     const user = await prisma.user.findUnique({
@@ -27,8 +27,9 @@ const authenticateToken = async (req, res, next) => {
       include: { staffProfile: true }
     });
 
-    console.log('User found:', user ? 'Yes' : 'No');
-    console.log('User active:', user?.isActive);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('User found:', user ? 'Yes' : 'No');
+    }
 
     if (!user || !user.isActive) {
       return res.status(401).json({ 
@@ -40,7 +41,9 @@ const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.log('JWT verification error:', error.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('JWT verification error:', error.message);
+    }
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 
         error: 'Token expired',

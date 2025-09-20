@@ -111,26 +111,6 @@ const Login: React.FC = () => {
             </Button>
           </Box>
 
-          <Box sx={{ mt: 3, p: 2, backgroundColor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Demo Credentials:
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              <strong>👑 Admin:</strong> admin@chartbreaker.com / admin123
-              <br />
-              <em style={{ fontSize: '0.8em', color: '#666' }}>→ Full access to all features</em>
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              <strong>👩‍⚕️ Clinician:</strong> nurse@chartbreaker.com / clinician123
-              <br />
-              <em style={{ fontSize: '0.8em', color: '#666' }}>→ Clinical features access</em>
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              <strong>📋 Intake:</strong> intake@chartbreaker.com / intake123
-              <br />
-              <em style={{ fontSize: '0.8em', color: '#666' }}>→ Patient intake features</em>
-            </Typography>
-          </Box>
 
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary">

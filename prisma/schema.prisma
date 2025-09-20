@@ -543,6 +543,8 @@ model UserRegistrationRequest {
   status      RegistrationStatus @default(PENDING)
   verificationCode String? @map("verification_code")
   verificationExpires DateTime? @map("verification_expires")
+  completionToken String? @map("completion_token")
+  completionTokenExpires DateTime? @map("completion_token_expires")
   adminNotes  String? @map("admin_notes")
   requestedAt DateTime @default(now()) @map("requested_at")
   approvedAt  DateTime? @map("approved_at")

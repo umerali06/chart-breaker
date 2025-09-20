@@ -11,3 +11,10 @@ client/.next/
 client/.turbo/
 
 client/.vite/
+
+env.example
+
+.env
+
+env.local
+

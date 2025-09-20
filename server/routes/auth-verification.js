@@ -1,12 +1,32 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Joi = require('joi');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const emailService = require('../services/emailService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Validation schemas
+const requestRegistrationSchema = Joi.object({
+  email: Joi.string().email().required(),
+  firstName: Joi.string().min(2).max(100).required(),
+  lastName: Joi.string().min(2).max(100).required(),
+  role: Joi.string().valid('INTAKE_STAFF','CLINICIAN','QA_REVIEWER','BILLER').required(),
+});
+
+const verifyEmailSchema = Joi.object({
+  email: Joi.string().email().required(),
+  verificationCode: Joi.string().length(6).required(),
+});
+
+const completeRegistrationSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).required(),
+  token: Joi.string().min(10).required(),
+});
 
 // Generate verification code
 function generateVerificationCode() {
@@ -16,7 +36,11 @@ function generateVerificationCode() {
 // Request registration (Step 1: User requests to register)
 router.post('/request-registration', async (req, res) => {
   try {
-    const { email, firstName, lastName, role } = req.body;
+    const { error, value } = requestRegistrationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: 'Validation error', details: error.details[0].message });
+    }
+    const { email, firstName, lastName, role } = value;
 
     // Validate required fields
     if (!email || !firstName || !lastName || !role) {
@@ -110,7 +134,11 @@ router.post('/request-registration', async (req, res) => {
 // Verify email (Step 2: User verifies email with code)
 router.post('/verify-email', async (req, res) => {
   try {
-    const { email, verificationCode } = req.body;
+    const { error, value } = verifyEmailSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: 'Validation error', details: error.details[0].message });
+    }
+    const { email, verificationCode } = value;
 
     if (!email || !verificationCode) {
       return res.status(400).json({ 
@@ -176,11 +204,15 @@ router.post('/verify-email', async (req, res) => {
 // Complete registration (Step 3: User completes registration after admin approval)
 router.post('/complete-registration', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { error, value } = completeRegistrationSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: 'Validation error', details: error.details[0].message });
+    }
+    const { email, password, token: completionToken } = value;
 
-    if (!email || !password) {
+    if (!email || !password || !completionToken) {
       return res.status(400).json({ 
-        error: 'Email and password are required',
+        error: 'Email, password and token are required',
         code: 'MISSING_FIELDS'
       });
     }
@@ -201,6 +233,20 @@ router.post('/complete-registration', async (req, res) => {
       return res.status(400).json({ 
         error: 'Registration request is not approved',
         code: 'REQUEST_NOT_APPROVED'
+      });
+    }
+
+    // Validate completion token
+    if (!registrationRequest.completionToken || registrationRequest.completionToken !== completionToken) {
+      return res.status(400).json({
+        error: 'Invalid or missing completion token',
+        code: 'INVALID_COMPLETION_TOKEN'
+      });
+    }
+    if (registrationRequest.completionTokenExpires && new Date() > registrationRequest.completionTokenExpires) {
+      return res.status(400).json({
+        error: 'Completion token has expired',
+        code: 'COMPLETION_TOKEN_EXPIRED'
       });
     }
 
@@ -231,10 +277,10 @@ router.post('/complete-registration', async (req, res) => {
       }
     });
 
-    // Update registration request status
+    // Update registration request status and invalidate token
     await prisma.userRegistrationRequest.update({
       where: { email },
-      data: { status: 'APPROVED' }
+      data: { status: 'APPROVED', completionToken: null, completionTokenExpires: null }
     });
 
     // Generate JWT token
@@ -359,6 +405,10 @@ router.post('/admin/approve-registration/:requestId', authenticateToken, require
       });
     }
 
+    // Generate completion token (12h expiry)
+    const completionToken = require('crypto').randomBytes(24).toString('hex');
+    const completionTokenExpires = new Date(Date.now() + 12 * 60 * 60 * 1000);
+
     // Update registration request
     await prisma.userRegistrationRequest.update({
       where: { id: requestId },
@@ -366,7 +416,9 @@ router.post('/admin/approve-registration/:requestId', authenticateToken, require
         status: 'APPROVED',
         approvedAt: new Date(),
         approvedBy: req.user.userId,
-        adminNotes
+        adminNotes,
+        completionToken,
+        completionTokenExpires
       }
     });
 
@@ -374,7 +426,8 @@ router.post('/admin/approve-registration/:requestId', authenticateToken, require
     await emailService.sendRegistrationApprovalEmail(
       registrationRequest.email,
       registrationRequest.firstName,
-      req.user.firstName + ' ' + req.user.lastName
+      req.user.firstName + ' ' + req.user.lastName,
+      completionToken
     );
 
     res.json({ 

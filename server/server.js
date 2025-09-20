@@ -66,6 +66,17 @@ app.use(helmet({
   },
 }));
 
+// Basic rate limiting on auth and verification routes
+const rateLimit = require('express-rate-limit');
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth', authLimiter);
+app.use('/api/auth-verification', authLimiter);
+
 // CORS configuration for port 5000
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',

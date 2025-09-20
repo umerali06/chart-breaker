@@ -21,12 +21,9 @@ const registerSchema = Joi.object({
 
 // Login endpoint
 router.post('/login', async (req, res) => {
-  // Debug environment variables
-  console.log('Environment variables:', {
-    DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
-    NODE_ENV: process.env.NODE_ENV,
-    JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'NOT SET'
-  });
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Login endpoint hit');
+  }
   
   // Ensure DATABASE_URL is set
   if (!process.env.DATABASE_URL) {
@@ -39,7 +36,6 @@ router.post('/login', async (req, res) => {
   
   const prisma = new PrismaClient();
   try {
-    console.log('Login attempt:', req.body);
     const { error, value } = loginSchema.validate(req.body);
     if (error) {
       return res.status(400).json({

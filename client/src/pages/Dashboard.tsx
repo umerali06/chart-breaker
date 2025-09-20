@@ -449,6 +449,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [adminTab, setAdminTab] = useState(0);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState('');
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -503,6 +504,10 @@ const Dashboard: React.FC = () => {
   const fetchRegistrationRequests = async () => {
     try {
       setAdminLoading(true);
+      setAdminError('');
+      if (user?.role !== 'ADMIN') {
+        return;
+      }
       console.log('Fetching registration requests...');
       const response = await authVerificationApi.getRegistrationRequests({ status: 'PENDING' });
       console.log('Registration requests response:', response);
@@ -512,7 +517,7 @@ const Dashboard: React.FC = () => {
       setRegistrationRequests(requests);
     } catch (err: any) {
       console.error('Failed to load registration requests:', err);
-      setError(`Failed to load registration requests: ${err.response?.data?.error || err.message}`);
+      setAdminError(`Failed to load registration requests: ${err.response?.data?.error || err.message}`);
       setRegistrationRequests([]); // Set empty array on error
     } finally {
       setAdminLoading(false);
@@ -578,7 +583,7 @@ const Dashboard: React.FC = () => {
       console.log('Registration requests refreshed');
     } catch (err: any) {
       console.error('Failed to approve request:', err);
-      setError(`Failed to approve request: ${err.response?.data?.error || err.message}`);
+      setAdminError(`Failed to approve request: ${err.response?.data?.error || err.message}`);
     } finally {
       setProcessingRequest(null);
     }
@@ -597,7 +602,7 @@ const Dashboard: React.FC = () => {
       console.log('Registration requests refreshed');
     } catch (err: any) {
       console.error('Failed to reject request:', err);
-      setError(`Failed to reject request: ${err.response?.data?.error || err.message}`);
+      setAdminError(`Failed to reject request: ${err.response?.data?.error || err.message}`);
     } finally {
       setProcessingRequest(null);
     }
@@ -628,6 +633,12 @@ const Dashboard: React.FC = () => {
     if (adminPanel) {
       adminPanel.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const isAllowedForRole = (roles?: string[]) => {
+    if (!roles || roles.length === 0) return true;
+    if (user?.role === 'ADMIN') return true;
+    return !!user?.role && roles.includes(user.role);
   };
 
   const handleViewPatients = () => {
@@ -687,12 +698,17 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Do not block entire dashboard for non-admin users if admin panel errors occur
   if (error) {
-    return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-      </Alert>
-    );
+    // Only show blocking error if it's not an admin-permissions related message
+    const isAdminOnlyError = error.toLowerCase().includes('registration requests');
+    if (!isAdminOnlyError) {
+      return (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      );
+    }
   }
 
   return (
@@ -843,9 +859,9 @@ const Dashboard: React.FC = () => {
                 maxWidth: '100%',
                 minWidth: 0
               }}>
-                {error && (
-                  <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-                    {error}
+                {adminError && (
+                  <Alert severity="error" sx={{ mb: 2 }} onClose={() => setAdminError('')}>
+                    {adminError}
                   </Alert>
                 )}
                 {successMessage && (
@@ -1317,6 +1333,7 @@ const Dashboard: React.FC = () => {
                 gap: { xs: 1, sm: 1 },
                 flexWrap: { xs: 'wrap', sm: 'nowrap' }
               }}>
+                {isAllowedForRole(['INTAKE_STAFF','ADMIN']) && (
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
@@ -1329,6 +1346,8 @@ const Dashboard: React.FC = () => {
                 >
                   Add New Patient
                 </Button>
+                )}
+                {isAllowedForRole(['INTAKE_STAFF','CLINICIAN','ADMIN']) && (
                 <Button
                   variant="outlined"
                   startIcon={<ScheduleIcon />}
@@ -1341,6 +1360,8 @@ const Dashboard: React.FC = () => {
                 >
                   Schedule Visit
                 </Button>
+                )}
+                {isAllowedForRole(['CLINICIAN','ADMIN']) && (
                 <Button
                   variant="outlined"
                   startIcon={<AssignmentIcon />}
@@ -1353,6 +1374,8 @@ const Dashboard: React.FC = () => {
                 >
                   Create Assessment
                 </Button>
+                )}
+                {isAllowedForRole(['ADMIN','BILLER','QA_REVIEWER','CLINICIAN','INTAKE_STAFF']) && (
                 <Button
                   variant="outlined"
                   startIcon={<PaymentIcon />}
@@ -1365,6 +1388,8 @@ const Dashboard: React.FC = () => {
                 >
                   Generate Report
                 </Button>
+                )}
+                {isAllowedForRole(['INTAKE_STAFF','CLINICIAN','ADMIN']) && (
                 <Button
                   variant="outlined"
                   startIcon={<PeopleIcon />}
@@ -1377,6 +1402,8 @@ const Dashboard: React.FC = () => {
                 >
                   View Patients
                 </Button>
+                )}
+                {isAllowedForRole(['CLINICIAN','ADMIN']) && (
                 <Button
                   variant="outlined"
                   startIcon={<AssignmentIcon />}
@@ -1389,6 +1416,8 @@ const Dashboard: React.FC = () => {
                 >
                   View Episodes
                 </Button>
+                )}
+                {isAllowedForRole(['BILLER','ADMIN']) && (
                 <Button
                   variant="outlined"
                   startIcon={<PaymentIcon />}
@@ -1401,6 +1430,8 @@ const Dashboard: React.FC = () => {
                 >
                   View Billing
                 </Button>
+                )}
+                {isAllowedForRole(['QA_REVIEWER','ADMIN']) && (
                 <Button
                   variant="outlined"
                   startIcon={<VerifiedUserIcon />}
@@ -1413,6 +1444,7 @@ const Dashboard: React.FC = () => {
                 >
                   View QA/Compliance
                 </Button>
+                )}
                 {user?.role === 'ADMIN' && (
                   <Button
                     variant="outlined"
