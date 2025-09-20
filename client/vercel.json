@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://chart-breaker-backend.onrender.com/api/$1" }
+  ]
+}
+
+
